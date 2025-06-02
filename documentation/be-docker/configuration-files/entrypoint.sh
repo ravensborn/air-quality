@@ -8,9 +8,7 @@ fi
 role=${CONTAINER_ROLE:-app}
 
 if [ "$role" = "app" ]; then
-    php artisan migrate:fresh --seed
     php artisan optimize:clear
-    php artisan app:create-google-analytic-credential-file
 
     php-fpm -D
     nginx -g "daemon off;"
