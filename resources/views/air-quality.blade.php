@@ -127,7 +127,7 @@
                             <div class="icon-box"><i class="fas {{ $sensor->icon }}"></i></div>
                             <div>
                                 <div class="parameter-title">{{ $sensor->name }}</div>
-                                <div class="parameter-value">{{ $sensor->value }}</div>
+                                <div class="parameter-value">{{ $sensor->value . $sensor->unit }}</div>
                             </div>
                         </div>
                         <div class="timestamp">

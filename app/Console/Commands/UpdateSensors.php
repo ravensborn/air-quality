@@ -171,7 +171,7 @@ class UpdateSensors extends Command
             UpdateSensorDataJob::dispatch($endpoint['name'], $endpoint['endpoint_id'], $endpoint['icon'], $endpoint['unit'],  $endpoint['group']);
         }
 
-        $this->output->success('Sensor data updated successfully.');
+        $this->output->success('Sensor data update dispatched successfully.');
 
     }
 }
