@@ -16,7 +16,7 @@ class UpdateSensorDataJob implements ShouldQueue
     /**
      * Create a new job instance.
      */
-    public function __construct(private $name = 'Generic Sensor', private $endpointId, private $icon = '', private $group)
+    public function __construct(private $name = 'Generic Sensor', private $endpointId, private $icon = '', private $unit = '', private $group)
     {
         //
     }
@@ -31,6 +31,7 @@ class UpdateSensorDataJob implements ShouldQueue
             [
                 'group' => $this->group,
                 'icon' => $this->icon,
+                'unit' => $this->unit,
                 'name' => $this->name,
                 'value' => 0,
                 'last_updated_at' => Carbon::create(1997, 4, 20)->toIso8601String(),

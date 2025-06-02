@@ -168,7 +168,7 @@ class UpdateSensors extends Command
 
         foreach ($endpoints as $endpoint) {
 
-            UpdateSensorDataJob::dispatch($endpoint['name'], $endpoint['endpoint_id'], $endpoint['icon'],  $endpoint['group']);
+            UpdateSensorDataJob::dispatch($endpoint['name'], $endpoint['endpoint_id'], $endpoint['icon'], $endpoint['unit'],  $endpoint['group']);
         }
 
         $this->output->success('Sensor data updated successfully.');
