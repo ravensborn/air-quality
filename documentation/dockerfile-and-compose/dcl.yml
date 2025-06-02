@@ -57,7 +57,7 @@ services:
 
 
   horizon:
-    container_name: qir-quality-horizon
+    container_name: air-quality-horizon
     build:
       context: .
       dockerfile: DockerfileLocal
@@ -73,7 +73,7 @@ services:
       - laravel
 
   scheduler:
-    container_name: qir-quality-scheduler
+    container_name: air-quality-scheduler
     build:
       context: .
       dockerfile: DockerfileLocal
