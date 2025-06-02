@@ -1,0 +1,170 @@
+services:
+  app:
+    container_name: air-quality
+    build:
+      context: .
+      dockerfile: DockerfileLocal
+      target: php
+      args:
+        - APP_ENV=${APP_ENV:-development}
+    environment:
+      - CONTAINER_ROLE=app
+      - APP_ENV=${APP_ENV:-development}
+    working_dir: /var/www
+    volumes:
+      - ./:/var/www:delegated
+    ports:
+      - "9010:8080"
+    depends_on:
+      database:
+        condition: service_healthy
+      minio:
+        condition: service_started
+      redis:
+        condition: service_started
+      mailhog:
+        condition: service_started
+    networks:
+      - laravel
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  database:
+    container_name: air-quality-database
+    image: postgres:14-alpine
+    ports:
+      - "54320:5432"
+    environment:
+      - POSTGRES_DB=${DB_DATABASE}
+      - POSTGRES_USER=${DB_USERNAME}
+      - POSTGRES_PASSWORD=${DB_PASSWORD}
+    volumes:
+      - ./documentation/be-docker/data/postgres-data:/var/lib/postgresql/data
+    networks:
+      - laravel
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USERNAME} -d ${DB_DATABASE}"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
+    restart: unless-stopped
+
+
+  horizon:
+    container_name: qir-quality-horizon
+    build:
+      context: .
+      dockerfile: DockerfileLocal
+      target: php
+    environment:
+      - CONTAINER_ROLE=horizon
+    working_dir: /var/www
+    volumes:
+      - ./:/var/www
+    depends_on:
+      - app
+    networks:
+      - laravel
+
+  scheduler:
+    container_name: qir-quality-scheduler
+    build:
+      context: .
+      dockerfile: DockerfileLocal
+      target: php
+    environment:
+      - CONTAINER_ROLE=scheduler
+    working_dir: /var/www
+    volumes:
+      - ./:/var/www
+    depends_on:
+      - app
+    networks:
+      - laravel
+
+  minio:
+    hostname: minio
+    image: quay.io/minio/minio:latest
+    container_name: air-quality-minio
+    ports:
+      - "9998:9005"
+      - "9988:9088"
+    volumes:
+      - ./documentation/be-docker/data/minio-data:/data
+    environment:
+      MINIO_ROOT_USER: admin
+      MINIO_ROOT_PASSWORD: password
+    command: minio server --address ":9005" /data --console-address ":9088"
+    networks:
+      - laravel
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9005/minio/health/live"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 20s
+
+  minio-default-bucket:
+    image: quay.io/minio/minio:latest
+    container_name: air-quality-minio-default-bucket
+    depends_on:
+      minio:
+        condition: service_healthy
+    networks:
+      - laravel
+    entrypoint: >
+      /bin/sh -c "
+      /usr/bin/mc config host add local ${AWS_ENDPOINT} ${AWS_KEY:-admin} ${AWS_SECRET:-password};
+      /usr/bin/mc rm -r --force local/${AWS_BUCKET};
+      /usr/bin/mc mb -p local/${AWS_BUCKET};
+      /usr/bin/mc policy set download local/${AWS_BUCKET};
+      /usr/bin/mc policy set public local/${AWS_BUCKET};
+      /usr/bin/mc anonymous set upload local/${AWS_BUCKET};
+      /usr/bin/mc anonymous set download local/${AWS_BUCKET};
+      /usr/bin/mc anonymous set public local/${AWS_BUCKET};
+      exit 0;
+      "
+
+  redis:
+    image: redis:alpine
+    container_name: air-quality-redis
+    command: redis-server --appendonly yes
+    ports:
+      - "63798:6379"
+    volumes:
+      - ./documentation/be-docker/data/redis-data/data:/data
+    networks:
+      - laravel
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+
+  mailhog:
+    image: mailhog/mailhog:latest
+    container_name: air-quality-mailhog
+    ports:
+      - "1025:1025"
+      - "8025:8025"
+    networks:
+      - laravel
+    restart: unless-stopped
+
+volumes:
+  postgres-data:
+  minio-data:
+  redis-data:
+
+networks:
+  laravel:
+    driver: bridge
